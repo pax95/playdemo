@@ -30,10 +30,13 @@ public class PlaylistsFeederRoute extends RouteBuilder {
 				.split()
 				.method(ChannelList.class)
 				.parallelProcessing()
+				.setHeader(Exchange.HTTP_METHOD, simple("GET"))
 				.setHeader(Exchange.HTTP_URI,
 						simple("http://www.dr.dk/playlister/feeds/nowNext/nowPrev.drxml?items=0&cid=${body}"))
 				.to("http://dummy")
 				.id("dummy")
+				.filter()
+				.simple("${body} != null")
 				.unmarshal()
 				.json(JsonLibrary.Gson)
 				.filter(simple("${body[now][status]} == 'music'"))

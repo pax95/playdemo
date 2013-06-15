@@ -22,7 +22,7 @@
         })
         
         $scope.convertDate = function (date) {
-            return $filter('date')(Date.parse(date + '+0100'), 'HH:mm:ss');
+            return $filter('date')(Date.parse(date + '+02:00'), 'HH:mm:ss');
         };  
 	}
 
