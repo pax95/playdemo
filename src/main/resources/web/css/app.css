@@ -1,33 +1,88 @@
-/* app css stylesheet */
-.tablescroll {
-	height: 300px !important;
-    overflow: scroll;
-}
-.menu {
-  list-style: none;
-  border-bottom: 0.1em solid black;
-  margin-bottom: 2em;
-  padding: 0 0 0.5em;
+/* Animation */
+td {
+    line-height: 25px;
 }
 
-.menu:before {
-  content: "[";
+td:nth-child(1) {
+    width: 100px;
+}
+td:nth-child(2) {
+    width: 250px;
 }
 
-.menu:after {
-  content: "]";
+i.icon-pencil {
+    position: absolute;
+    margin-top: -5px;
 }
 
-.menu > li {
-  display: inline;
+input.ng-invalid {
+    border: 1px solid red;
 }
 
-.menu > li:before {
-  content: "|";
-  padding-right: 0.3em;
+.help-inline {
+    font-size: 75%;
+    color: red
 }
 
-.menu > li:nth-child(1):before {
-  content: "";
-  padding: 0;
+
+.slide-enter, .slide-leave {
+    -webkit-transition:all linear .3s;
 }
+.slide-enter>td, .slide-leave>td {
+    -webkit-transition:left,line-height linear,cubic-bezier(0.250, 0.460, 0.450, 0.940) .3s;
+    position: relative;
+}
+
+.slide-enter>td {
+    left:400px;
+    line-height: 0;
+}
+.slide-enter {
+    opacity: 0;
+}
+
+.slide-enter-active>td {
+    left:0;
+    line-height: 25px;
+}
+.slide-enter-active {
+    opacity: 1;
+}
+
+.slide-leave>td {
+    left:0;
+    line-height: 25px;
+}
+.slide-leave {
+    opacity: 1;
+}
+
+.slide-leave.slide-leave-active>td {
+    left:400px;
+    line-height: 0;
+}
+.slide-leave.slide-leave-active {
+    opacity: 0;
+}
+
+
+.slide-left-enter, .slide-left-leave,
+.slide-right-enter, .slide-right-leave {
+    -webkit-transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) .4s;
+    position: absolute;
+    top: 0;
+}
+
+
+.slide-right-enter { margin-left: 400px;  opacity: 0; }
+.slide-right-enter-active { margin-left: 0;      opacity: 1; }
+
+.slide-right-leave { margin-left: 0;      opacity: 1; }
+.slide-right-leave-active { margin-left: 400px;  opacity: 0; }
+
+
+.slide-left-enter  { margin-left: -400px; opacity: 0; }
+.slide-left-enter-active  { margin-left: 0;      opacity: 1; }
+
+.slide-left-leave  { margin-left: 0;      opacity: 1; }
+.slide-left-leave-active  { margin-left: -400px; opacity: 0; }
