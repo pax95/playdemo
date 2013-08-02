@@ -3,6 +3,8 @@ package dk.miw.playlists;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -21,7 +23,9 @@ import dk.miw.playlists.model.Track;
 
 public class PlaylistsFeederRoute extends RouteBuilder {
 	private Map<String, Long> traceInfo = new HashMap<String, Long>();
-
+	private AtomicLong numberSendt = new AtomicLong(0);
+	private AtomicLong numberRecieved = new AtomicLong(0);
+	private CountDownLatch latch = new CountDownLatch(1);
 	private Pubnub pubnub = new Pubnub("pub-c-f414dd3b-48ee-4c9a-b898-1f4c5f7fd46e",
 			"sub-c-506c4834-d0ee-11e2-9456-02ee2ddab7fe");
 
@@ -31,6 +35,7 @@ public class PlaylistsFeederRoute extends RouteBuilder {
 		PropertiesComponent propertiesComponent = new PropertiesComponent();
 		propertiesComponent.setLocation("classpath:playlists.properties");
 		getContext().addComponent("properties", propertiesComponent);
+		latch.await();
 
 		from("timer://pollingTimer?fixedRate=true&period=3000")
 				.autoStartup(true)
@@ -50,6 +55,7 @@ public class PlaylistsFeederRoute extends RouteBuilder {
 				.convertBodyTo(Track.class)
 				.setHeader("artist", simple("${body.artist}"))
 				.setHeader("title", simple("${body.title}"))
+				.setHeader("channel", simple("${body.channel}"))
 				.idempotentConsumer(simple("${body.time}-${body.channel}"),
 						MemoryIdempotentRepository.memoryIdempotentRepository(300)).to("direct:process");
 
@@ -57,13 +63,17 @@ public class PlaylistsFeederRoute extends RouteBuilder {
 				.marshal().json(JsonLibrary.Gson, Track.class).process(new Processor() {
 					@Override
 					public void process(Exchange exchange) throws Exception {
-						traceInfo.put(exchange.getIn().getHeader("title", String.class),
+						// wait til subscriber is connected
+						traceInfo.put(
+								exchange.getIn().getHeader("title", String.class)
+										+ exchange.getIn().getHeader("channel", String.class),
 								new Long(System.currentTimeMillis()));
 						pubnub.publish("music", new JSONObject(exchange.getIn().getBody(String.class)), new Callback() {
 
 							@Override
 							public void successCallback(String channel, Object message) {
 								super.successCallback(channel, message);
+								numberSendt.incrementAndGet();
 							}
 
 							@Override
@@ -109,15 +119,26 @@ public class PlaylistsFeederRoute extends RouteBuilder {
 
 			PlaylistsFeederRoute.this.pubnub.subscribe(channels, new Callback() {
 				@Override
+				public void connectCallback(String channel, Object message) {
+					super.connectCallback(channel, message);
+					latch.countDown();
+				}
+
+				@Override
 				public void successCallback(String channel, Object message) {
 					super.successCallback(channel, message);
 					String title;
+					String trackchannel;
 					try {
 						title = ((JSONObject) message).getString("title");
-						Long enqueueTime = traceInfo.get(title);
+						trackchannel = ((JSONObject) message).getString("channel");
+						Long enqueueTime = traceInfo.get(title + trackchannel);
+						numberRecieved.getAndIncrement();
 						System.out.println("Pubnub message turnaround time "
-								+ (System.currentTimeMillis() - enqueueTime.longValue()) + " ms.");
+								+ (System.currentTimeMillis() - enqueueTime.longValue()) + " ms. Number sendt "
+								+ numberSendt.longValue() + " number recieved " + numberRecieved.longValue());
 					} catch (JSONException e) {
+						e.printStackTrace();
 					}
 				}
 			});
